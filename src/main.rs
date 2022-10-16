@@ -1,22 +1,37 @@
 use std::{
-    env,
     error::Error,
     fs::File,
     io::{self, BufRead, Write},
 };
 
 use uuid::Uuid;
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Root path containing vdoc directory
+    #[arg(short, long, default_value_t = String::from("/home/harry/Documents/vdoc"))]
+    target_path: String,
+
+    /// Name of created document
+    #[arg(short, long, default_value_t = String::from(""))]
+    file_name: String
+}
+
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let args: Vec<String> = env::args().collect();
+    let args = Args::parse();
 
-    let file_name = args.get(1);
-    let file_path = create_file(file_name)?;
-
+    let target_path = args.target_path;
+    let file_name = args.file_name;
+    let file_path = create_file(&file_name, &target_path)?;
     io::stdout().write_all(file_path.as_bytes())?;
 
     Ok(())
 }
+
+
 
 fn read_stdin() -> String {
     let stdin = io::stdin();
@@ -28,13 +43,13 @@ fn read_stdin() -> String {
     buffer
 }
 
-fn create_file(file_name: Option<&String>) -> Result<String, Box<dyn Error>> {
-    let full_path = match file_name {
-        Some(file_name) => format!("/home/harry/Documents/vdoc/{}", file_name),
-        None => format!(
-            "/home/harry/Documents/vdoc/.scratch/scratch-{}",
-            Uuid::new_v4()
-        ),
+fn create_file(
+    file_name: &String,
+    target_path: &String,
+) -> Result<String, Box<dyn Error>> {
+    let full_path = match file_name.as_str() {
+        "" => format!("{}/.scratch/scratch-{}", target_path, Uuid::new_v4()),
+        file_name => format!("{}/{}", target_path, file_name),
     };
     let mut file = File::create(full_path.as_str())?;
     if !atty::is(atty::Stream::Stdin) {
