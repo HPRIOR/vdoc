@@ -4,8 +4,8 @@ use std::{
     io::{self, BufRead, Write},
 };
 
-use uuid::Uuid;
 use clap::Parser;
+use uuid::Uuid;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -16,22 +16,22 @@ struct Args {
 
     /// Name of created document
     #[arg(short, long, default_value_t = String::from(""))]
-    file_name: String
-}
+    file_name: String,
 
+    #[arg(short, long, default_value_t = true)]
+    md_scrap: bool,
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     let target_path = args.target_path;
     let file_name = args.file_name;
-    let file_path = create_file(&file_name, &target_path)?;
+    let file_path = create_file(&file_name, &target_path, args.md_scrap)?;
     io::stdout().write_all(file_path.as_bytes())?;
 
     Ok(())
 }
-
-
 
 fn read_stdin() -> String {
     let stdin = io::stdin();
@@ -46,9 +46,15 @@ fn read_stdin() -> String {
 fn create_file(
     file_name: &String,
     target_path: &String,
+    md_scrap: bool,
 ) -> Result<String, Box<dyn Error>> {
     let full_path = match file_name.as_str() {
-        "" => format!("{}/.scratch/scratch-{}", target_path, Uuid::new_v4()),
+        "" => format!(
+            "{}/.scratch/scratch-{}{}",
+            target_path,
+            Uuid::new_v4(),
+            if md_scrap { ".md" } else { "" }
+        ),
         file_name => format!("{}/{}", target_path, file_name),
     };
     let mut file = File::create(full_path.as_str())?;
